@@ -43,6 +43,7 @@ export type Lesson = {
   sourceNote: string;
   futureSourcesNote: string;
   texts: BibleText[];
+  allTexts: BibleText[];
   focusText: BibleText;
   themes: LessonTheme[];
   activeTheme: LessonTheme;
@@ -92,6 +93,7 @@ export function buildLesson(bundle: BibleBundle, themeIndex = 0): Lesson {
     sourceNote: bundle.sourceNote,
     futureSourcesNote: bundle.futureSourcesNote,
     texts,
+    allTexts: bundle.texts,
     focusText,
     themes: LESSON_THEMES,
     activeTheme,
