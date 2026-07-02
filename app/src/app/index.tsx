@@ -2,7 +2,8 @@ import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import { useMemo, useState } from 'react';
 
 import { ESSENTIALS_DEMO } from '../data/demoTexts';
-import { buildLesson, Lesson } from '../engine/exerciseBuilder';
+import { buildLesson } from '../engine/exerciseBuilder';
+import type { Lesson } from '../engine/exerciseBuilder';
 import { DoneScreen } from '../screens/DoneScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
