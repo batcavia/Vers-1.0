@@ -7,13 +7,24 @@ import type { Lesson } from '../engine/exerciseBuilder';
 import { DoneScreen } from '../screens/DoneScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 
-type Route = 'home' | 'lesson' | 'done';
+type Route = 'onboarding' | 'home' | 'lesson' | 'done';
 
 export default function IndexScreen() {
-  const [route, setRoute] = useState<Route>('home');
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [route, setRoute] = useState<Route>('onboarding');
   const [lessonIndex, setLessonIndex] = useState(0);
   const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, lessonIndex), [lessonIndex]);
+
+  function finishOnboarding() {
+    setHasSeenOnboarding(true);
+    setRoute('lesson');
+  }
+
+  function reviewOnboarding() {
+    setRoute('onboarding');
+  }
 
   function startLesson() {
     setRoute('lesson');
@@ -27,7 +38,10 @@ export default function IndexScreen() {
   return (
     <SafeAreaView style={styles.shell}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8EC" />
-      {route === 'home' ? <HomeScreen lesson={lesson} onStart={startLesson} /> : null}
+      {route === 'onboarding' ? <OnboardingScreen onFinish={finishOnboarding} /> : null}
+      {route === 'home' ? (
+        <HomeScreen lesson={lesson} onStart={startLesson} onReviewOnboarding={reviewOnboarding} />
+      ) : null}
       {route === 'lesson' ? <LessonScreen lesson={lesson} onDone={() => setRoute('done')} /> : null}
       {route === 'done' ? (
         <DoneScreen lesson={lesson} onAnotherLesson={startAnotherLesson} onHome={() => setRoute('home')} />
