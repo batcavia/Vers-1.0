@@ -10,10 +10,12 @@ Vers is een Expo React Native MVP voor progressieve Bijbeltekst-memorisatie.
 - Geen database
 - Geen spraakherkenning
 - Geen scores, coins, streaks, badges of leaderboards
-- Korte interactieve lesflow met steeds minder hulp
-- Oefenvormen N0 tot en met N5, met N6 als lichte kettingvoorbereiding
+- Thema's op de startpagina met de teksten die de gebruiker wil leren
+- Korte interactieve lesflow met meerdere teksten tegelijk
+- Missende woorden plek voor plek afvinken, zonder volledige tekst overtypen
+- Eerste-letter en kettingvoorbereiding als latere stappen
 - Warme, Duolingo-geinspireerde UI zonder externe assets
-- Lamp-mascotte als rustige coach
+- Oude monnik in bruine habijt als rustige coach
 
 ## Starten
 
