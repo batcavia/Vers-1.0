@@ -1,35 +1,58 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Mascot } from '../components/Mascot';
-import { Lesson } from '../engine/exerciseBuilder';
+import { HomeHero } from '../components/HomeHero';
+import { LessonCard } from '../components/LessonCard';
+import { PrimaryButton } from '../components/PrimaryButton';
+import type { Lesson } from '../engine/exerciseBuilder';
 
 type Props = {
   lesson: Lesson;
   onStart: () => void;
+  onReviewOnboarding: () => void;
 };
 
-export function HomeScreen({ lesson, onStart }: Props) {
+export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>Vers</Text>
-        <Text style={styles.subtitle}>Leer korte teksten laag voor laag, met steeds minder hulp.</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <HomeHero title={lesson.title} translation={lesson.translation} reference={lesson.focusText.reference} />
 
-      <View style={styles.panel}>
-        <Mascot tone="idle" message="Vandaag bouwen we de tekst rustig op." />
-        <Text style={styles.kicker}>{lesson.title}</Text>
-        <Text style={styles.title}>Progressieve memorisatie</Text>
-        <Text style={styles.body}>{lesson.description}</Text>
-        <View style={styles.metaRow}>
-          <Text style={styles.meta}>{lesson.texts.length} demo-teksten</Text>
-          <Text style={styles.meta}>{lesson.exercises.length} korte stappen</Text>
+        <View style={styles.todayCard}>
+          <Text style={styles.kicker}>Vandaag leren</Text>
+          <Text style={styles.title}>{lesson.focusText.reference}</Text>
+          <Text style={styles.description}>{lesson.focusText.context}</Text>
+          <View style={styles.metaRow}>
+            <Text style={styles.meta}>{lesson.translation}</Text>
+            <Text style={styles.meta}>{lesson.exercises.length} stappen</Text>
+          </View>
         </View>
-      </View>
 
-      <Pressable style={styles.primaryButton} onPress={onStart}>
-        <Text style={styles.primaryButtonText}>Start les</Text>
-      </Pressable>
+        <View style={styles.pathSection}>
+          <Text style={styles.sectionTitle}>Lespad</Text>
+          {lesson.texts.slice(0, 5).map((text, index) => (
+            <LessonCard
+              key={text.id}
+              step={index + 1}
+              reference={text.reference}
+              theme={text.theme}
+              active={text.id === lesson.focusText.id}
+            />
+          ))}
+        </View>
+
+        <View style={styles.noteCard}>
+          <Text style={styles.noteTitle}>Bronnen</Text>
+          <Text style={styles.noteText}>{lesson.sourceNote}</Text>
+          <Text style={styles.noteText}>{lesson.futureSourcesNote}</Text>
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <PrimaryButton label="Start les" onPress={onStart} />
+        <Pressable style={styles.reviewButton} onPress={onReviewOnboarding}>
+          <Text style={styles.reviewText}>Uitleg opnieuw bekijken</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -37,30 +60,20 @@ export function HomeScreen({ lesson, onStart }: Props) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    paddingVertical: 30,
-    backgroundColor: '#FFF7EA',
+    backgroundColor: '#FFF8EC',
   },
-  header: {
-    gap: 8,
+  content: {
+    gap: 18,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 138,
   },
-  brand: {
-    color: '#173F35',
-    fontSize: 48,
-    fontWeight: '900',
-  },
-  subtitle: {
-    color: '#53615A',
-    fontSize: 18,
-    lineHeight: 26,
-  },
-  panel: {
+  todayCard: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#E7D7B9',
-    borderRadius: 16,
+    borderColor: '#E6D8BF',
+    borderRadius: 24,
     borderWidth: 1,
-    gap: 14,
+    gap: 10,
     padding: 18,
     shadowColor: '#6B4D20',
     shadowOpacity: 0.08,
@@ -68,51 +81,76 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   kicker: {
-    color: '#B06535',
+    color: '#B25E2A',
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '900',
     textTransform: 'uppercase',
   },
   title: {
     color: '#173F35',
-    fontSize: 28,
+    fontSize: 29,
     fontWeight: '900',
     lineHeight: 34,
   },
-  body: {
-    color: '#46534D',
+  description: {
+    color: '#58675F',
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 23,
   },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    paddingTop: 4,
   },
   meta: {
-    backgroundColor: '#EEF5EE',
+    backgroundColor: '#EEF7F1',
     borderRadius: 999,
-    color: '#173F35',
+    color: '#1E7D68',
     fontSize: 13,
-    fontWeight: '800',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    fontWeight: '900',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
   },
-  primaryButton: {
+  pathSection: {
+    gap: 10,
+  },
+  sectionTitle: {
+    color: '#173F35',
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  noteCard: {
+    backgroundColor: '#F7EAD3',
+    borderRadius: 18,
+    gap: 7,
+    padding: 15,
+  },
+  noteTitle: {
+    color: '#6B4A20',
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  noteText: {
+    color: '#6B5D48',
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  footer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 20,
+    gap: 10,
+  },
+  reviewButton: {
     alignItems: 'center',
-    backgroundColor: '#19715F',
-    borderRadius: 14,
-    minHeight: 58,
-    justifyContent: 'center',
-    shadowColor: '#19715F',
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    paddingVertical: 4,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+  reviewText: {
+    color: '#1E7D68',
+    fontSize: 15,
     fontWeight: '900',
   },
 });

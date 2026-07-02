@@ -1,16 +1,19 @@
 # Vers
 
-Vers is een Expo React Native MVP voor progressieve tekstmemorisatie.
+Vers is een Expo React Native MVP voor progressieve Bijbeltekst-memorisatie.
 
 ## Scope
 
+- Essentials-bundel met Statenvertaling als juridisch veilige demo-inhoud
+- Structuur voorbereid op latere vertalingen via licentie of gebruikersimport
 - Geen accounts
-- Geen scores, streaks, badges of leaderboards
+- Geen database
+- Geen spraakherkenning
+- Geen scores, coins, streaks, badges of leaderboards
 - Korte interactieve lesflow met steeds minder hulp
-- Demo-bundel: Essentials demo
-- Placeholderteksten in plaats van vaste vertaalde hoofdinhoud
 - Oefenvormen N0 tot en met N5, met N6 als lichte kettingvoorbereiding
-- Subtiele lamp-mascotte en rustige feedback
+- Warme, Duolingo-geinspireerde UI zonder externe assets
+- Lamp-mascotte als rustige coach
 
 ## Starten
 
@@ -19,4 +22,4 @@ npm install
 npm run start
 ```
 
-De tekstdata staat nu los van de oefen-engine, zodat echte teksten later via import of licentie kunnen worden toegevoegd.
+De Expo SDK 57 projectconfig blijft leidend. De app gebruikt Expo Router via `app/src/app/index.tsx`.
