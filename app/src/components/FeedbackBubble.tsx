@@ -13,11 +13,37 @@ export function FeedbackBubble({ tone, message }: Props) {
   }
 
   return (
-    <View style={[styles.bubble, styles[tone]]}>
-      <View style={[styles.tail, styles[`${tone}Tail`]]} />
+    <View style={[styles.bubble, toneStyle(tone)]}>
+      <View style={[styles.tail, tailStyle(tone)]} />
       <Text style={styles.text}>{message}</Text>
     </View>
   );
+}
+
+function toneStyle(tone: FeedbackTone) {
+  if (tone === 'correct') {
+    return styles.correct;
+  }
+  if (tone === 'almost') {
+    return styles.almost;
+  }
+  if (tone === 'miss') {
+    return styles.miss;
+  }
+  return styles.idle;
+}
+
+function tailStyle(tone: FeedbackTone) {
+  if (tone === 'correct') {
+    return styles.correctTail;
+  }
+  if (tone === 'almost') {
+    return styles.almostTail;
+  }
+  if (tone === 'miss') {
+    return styles.missTail;
+  }
+  return styles.idleTail;
 }
 
 const styles = StyleSheet.create({
@@ -47,7 +73,6 @@ const styles = StyleSheet.create({
   },
   idleTail: {
     backgroundColor: '#FFFDF8',
-    borderColor: '#E2D3B7',
   },
   correct: {
     backgroundColor: '#DFF7EA',
