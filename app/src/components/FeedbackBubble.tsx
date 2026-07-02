@@ -14,6 +14,7 @@ export function FeedbackBubble({ tone, message }: Props) {
 
   return (
     <View style={[styles.bubble, styles[tone]]}>
+      <View style={[styles.tail, styles[`${tone}Tail`]]} />
       <Text style={styles.text}>{message}</Text>
     </View>
   );
@@ -21,32 +22,58 @@ export function FeedbackBubble({ tone, message }: Props) {
 
 const styles = StyleSheet.create({
   bubble: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     maxWidth: 280,
+    shadowColor: '#5E4320',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  tail: {
+    position: 'absolute',
+    left: -6,
+    top: 24,
+    width: 12,
+    height: 12,
+    borderBottomLeftRadius: 3,
+    transform: [{ rotate: '45deg' }],
   },
   idle: {
     backgroundColor: '#FFFDF8',
     borderColor: '#E2D3B7',
   },
+  idleTail: {
+    backgroundColor: '#FFFDF8',
+    borderColor: '#E2D3B7',
+  },
   correct: {
-    backgroundColor: '#E3F4EA',
-    borderColor: '#90C4A7',
+    backgroundColor: '#DFF7EA',
+    borderColor: '#82C9A0',
+  },
+  correctTail: {
+    backgroundColor: '#DFF7EA',
   },
   almost: {
-    backgroundColor: '#FFF1D8',
-    borderColor: '#E0B86E',
+    backgroundColor: '#FFF1D6',
+    borderColor: '#E3B65D',
+  },
+  almostTail: {
+    backgroundColor: '#FFF1D6',
   },
   miss: {
-    backgroundColor: '#FBE8E1',
-    borderColor: '#D59A86',
+    backgroundColor: '#FCE9E1',
+    borderColor: '#DA9A83',
+  },
+  missTail: {
+    backgroundColor: '#FCE9E1',
   },
   text: {
     color: '#26342F',
     fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 21,
+    fontWeight: '800',
+    lineHeight: 22,
   },
 });
