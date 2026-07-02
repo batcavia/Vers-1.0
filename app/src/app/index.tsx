@@ -18,6 +18,11 @@ export default function IndexScreen() {
   const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, lessonIndex), [lessonIndex]);
 
   function finishOnboarding() {
+    if (hasSeenOnboarding) {
+      setRoute('home');
+      return;
+    }
+
     setHasSeenOnboarding(true);
     setRoute('lesson');
   }
