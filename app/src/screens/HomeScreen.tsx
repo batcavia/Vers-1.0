@@ -1,13 +1,12 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HomeHero } from '../components/HomeHero';
-import { LessonCard } from '../components/LessonCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import type { Lesson } from '../engine/exerciseBuilder';
 
 type Props = {
   lesson: Lesson;
-  onStart: () => void;
+  onStart: (themeIndex?: number) => void;
   onReviewOnboarding: () => void;
 };
 
@@ -15,28 +14,39 @@ export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <HomeHero title={lesson.title} translation={lesson.translation} reference={lesson.focusText.reference} />
+        <HomeHero title="Kies je thema" translation={lesson.translation} reference={lesson.activeTheme.title} />
 
-        <View style={styles.todayCard}>
+        <View style={styles.introCard}>
           <Text style={styles.kicker}>Vandaag leren</Text>
-          <Text style={styles.title}>{lesson.focusText.reference}</Text>
-          <Text style={styles.description}>{lesson.focusText.context}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.meta}>{lesson.translation}</Text>
-            <Text style={styles.meta}>{lesson.exercises.length} stappen</Text>
-          </View>
+          <Text style={styles.title}>Welke teksten wil je oefenen?</Text>
+          <Text style={styles.description}>
+            Kies een thema. In de les oefen je meerdere Bijbelteksten tegelijk en vink je missende woorden plek voor plek af.
+          </Text>
         </View>
 
-        <View style={styles.pathSection}>
-          <Text style={styles.sectionTitle}>Lespad</Text>
-          {lesson.texts.slice(0, 5).map((text, index) => (
-            <LessonCard
-              key={text.id}
-              step={index + 1}
-              reference={text.reference}
-              theme={text.theme}
-              active={text.id === lesson.focusText.id}
-            />
+        <View style={styles.themeSection}>
+          <Text style={styles.sectionTitle}>Thema's</Text>
+          {lesson.themes.map((theme, index) => (
+            <View key={theme.id} style={[styles.themeCard, theme.id === lesson.activeTheme.id ? styles.activeTheme : null]}>
+              <View style={styles.themeHeader}>
+                <View style={styles.themeNumber}>
+                  <Text style={styles.themeNumberText}>{index + 1}</Text>
+                </View>
+                <View style={styles.themeCopy}>
+                  <Text style={styles.themeTitle}>{theme.title}</Text>
+                  <Text style={styles.themeDescription}>{theme.description}</Text>
+                </View>
+              </View>
+              <View style={styles.referenceWrap}>
+                {theme.textIds.map((id) => {
+                  const text = lesson.texts.find((item) => item.id === id);
+                  return text ? (
+                    <Text key={id} style={styles.referencePill}>{text.reference}</Text>
+                  ) : null;
+                })}
+              </View>
+              <PrimaryButton label="Start dit thema" onPress={() => onStart(index)} />
+            </View>
           ))}
         </View>
 
@@ -48,7 +58,6 @@ export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
       </ScrollView>
 
       <View style={styles.footer}>
-        <PrimaryButton label="Start les" onPress={onStart} />
         <Pressable style={styles.reviewButton} onPress={onReviewOnboarding}>
           <Text style={styles.reviewText}>Uitleg opnieuw bekijken</Text>
         </Pressable>
@@ -66,9 +75,9 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 138,
+    paddingBottom: 96,
   },
-  todayCard: {
+  introCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E6D8BF',
     borderRadius: 24,
@@ -97,27 +106,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 23,
   },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  meta: {
-    backgroundColor: '#EEF7F1',
-    borderRadius: 999,
-    color: '#1E7D68',
-    fontSize: 13,
-    fontWeight: '900',
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-  },
-  pathSection: {
-    gap: 10,
+  themeSection: {
+    gap: 12,
   },
   sectionTitle: {
     color: '#173F35',
     fontSize: 19,
     fontWeight: '900',
+  },
+  themeCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E6D8BF',
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 14,
+    padding: 16,
+  },
+  activeTheme: {
+    borderColor: '#1E7D68',
+    backgroundColor: '#F4FBF7',
+  },
+  themeHeader: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeNumber: {
+    alignItems: 'center',
+    backgroundColor: '#7A5435',
+    borderBottomColor: '#5B3B23',
+    borderBottomWidth: 4,
+    borderRadius: 18,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  themeNumberText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  themeCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  themeTitle: {
+    color: '#173F35',
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  themeDescription: {
+    color: '#5F6B64',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  referenceWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  referencePill: {
+    backgroundColor: '#F2E6CE',
+    borderRadius: 999,
+    color: '#744B27',
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   noteCard: {
     backgroundColor: '#F7EAD3',
@@ -146,7 +200,9 @@ const styles = StyleSheet.create({
   },
   reviewButton: {
     alignItems: 'center',
-    paddingVertical: 4,
+    backgroundColor: '#FFF8EC',
+    borderRadius: 999,
+    paddingVertical: 10,
   },
   reviewText: {
     color: '#1E7D68',
