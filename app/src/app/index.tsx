@@ -1,40 +1,36 @@
 import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import { useMemo, useState } from 'react';
 
+import { ESSENTIALS_DEMO } from '../data/demoTexts';
+import { buildLesson } from '../engine/exerciseBuilder';
+import type { Lesson } from '../engine/exerciseBuilder';
 import { DoneScreen } from '../screens/DoneScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { LessonScreen } from '../screens/LessonScreen';
-import { assembleLesson } from '../lesson/assembler';
 
 type Route = 'home' | 'lesson' | 'done';
 
 export default function IndexScreen() {
   const [route, setRoute] = useState<Route>('home');
-  const [completedCount, setCompletedCount] = useState(0);
-  const lesson = useMemo(() => assembleLesson(), []);
+  const [lessonSeed, setLessonSeed] = useState(0);
+  const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_DEMO), [lessonSeed]);
+
+  function startLesson() {
+    setRoute('lesson');
+  }
+
+  function startAnotherLesson() {
+    setLessonSeed((seed) => seed + 1);
+    setRoute('lesson');
+  }
 
   return (
     <SafeAreaView style={styles.shell}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F3EA" />
-      {route === 'home' ? (
-        <HomeScreen lesson={lesson} onStart={() => setRoute('lesson')} />
-      ) : null}
-      {route === 'lesson' ? (
-        <LessonScreen
-          lesson={lesson}
-          onDone={() => {
-            setCompletedCount((count) => count + 1);
-            setRoute('done');
-          }}
-        />
-      ) : null}
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF7EA" />
+      {route === 'home' ? <HomeScreen lesson={lesson} onStart={startLesson} /> : null}
+      {route === 'lesson' ? <LessonScreen lesson={lesson} onDone={() => setRoute('done')} /> : null}
       {route === 'done' ? (
-        <DoneScreen
-          completedCount={completedCount}
-          lesson={lesson}
-          onAgain={() => setRoute('lesson')}
-          onHome={() => setRoute('home')}
-        />
+        <DoneScreen lesson={lesson} onAnotherLesson={startAnotherLesson} onHome={() => setRoute('home')} />
       ) : null}
     </SafeAreaView>
   );
@@ -43,6 +39,6 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   shell: {
     flex: 1,
-    backgroundColor: '#F7F3EA',
+    backgroundColor: '#FFF7EA',
   },
 });

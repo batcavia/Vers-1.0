@@ -1,17 +1,16 @@
 # Vers
 
-Eerste MVP van Vers, gebouwd met Expo React Native.
+Vers is een Expo React Native MVP voor progressieve tekstmemorisatie.
 
 ## Scope
 
-- Korte lesjes van gemiddeld ongeveer 3 minuten
-- Geen harde timer
-- Geen database
 - Geen accounts
-- Geen spraakherkenning
-- HomeScreen, LessonScreen en DoneScreen
-- 10 Statenvertaling-verzen lokaal in code
-- Lesson assembler met 180 seconden target en zachte grenzen van 150-240 seconden
+- Geen scores, streaks, badges of leaderboards
+- Korte interactieve lesflow met steeds minder hulp
+- Demo-bundel: Essentials demo
+- Placeholderteksten in plaats van vaste vertaalde hoofdinhoud
+- Oefenvormen N0 tot en met N5, met N6 als lichte kettingvoorbereiding
+- Subtiele lamp-mascotte en rustige feedback
 
 ## Starten
 
@@ -20,4 +19,4 @@ npm install
 npm run start
 ```
 
-De MVP gebruikt bewust alleen lokale state. Een afgeronde les telt alleen binnen de huidige app-sessie.
+De tekstdata staat nu los van de oefen-engine, zodat echte teksten later via import of licentie kunnen worden toegevoegd.
