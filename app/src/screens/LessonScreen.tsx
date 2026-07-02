@@ -1,12 +1,16 @@
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { AnswerOption } from '../components/AnswerOption';
-import { FeedbackTone } from '../components/FeedbackBubble';
+import { BibleTextCard } from '../components/BibleTextCard';
+import type { FeedbackTone } from '../components/FeedbackBubble';
+import { LevelPill } from '../components/LevelPill';
 import { Mascot } from '../components/Mascot';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { ProgressDots } from '../components/ProgressDots';
-import { checkRecall, checkTypedWords, normalizeAnswer, RecallCheck } from '../engine/answerCheck';
-import { ChoiceBlank, Exercise, Lesson } from '../engine/exerciseBuilder';
+import { checkRecall, checkTypedWords, normalizeAnswer } from '../engine/answerCheck';
+import type { RecallCheck } from '../engine/answerCheck';
+import type { ChoiceBlank, Exercise, Lesson } from '../engine/exerciseBuilder';
 
 type Props = {
   lesson: Lesson;
@@ -22,20 +26,20 @@ type FeedbackState = {
 const CORRECT_MESSAGES = [
   'Mooi onthouden.',
   'Dat zat stevig.',
-  'Goed! Minder hulp de volgende keer.',
-  'Je bouwt hem laag voor laag op.',
+  'Goed. De volgende stap krijgt minder hulp.',
+  'Je haalt hem al beter op uit je geheugen.',
 ];
 
 const ALMOST_MESSAGES = [
-  'Bijna. Een woord zat nog scheef.',
+  'Bijna. Een woord zat nog niet goed.',
   'De kern had je. We oefenen hem nog een keer.',
-  'Bijna - dit woord ontbrak nog.',
+  'Let op de volgorde van deze woorden.',
 ];
 
 const MISS_MESSAGES = [
   'Geen probleem. We geven iets meer hulp.',
   'Rustig opnieuw. Eerst met meer steun.',
-  'Dit is precies hoe onthouden groeit.',
+  'Dit hoort bij leren. Je bouwt de tekst laag voor laag op.',
 ];
 
 export function LessonScreen({ lesson, onDone }: Props) {
@@ -43,7 +47,7 @@ export function LessonScreen({ lesson, onDone }: Props) {
   const [selectedChoices, setSelectedChoices] = useState<Record<string, string>>({});
   const [typedAnswer, setTypedAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'idle', message: 'Lees rustig. De hulp valt straks stap voor stap weg.' });
+  const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'idle', message: 'Eerst stevig kijken. Daarna halen we steeds meer hulp weg.' });
   const exercise = lesson.exercises[index];
   const isLast = index === lesson.exercises.length - 1;
 
@@ -72,8 +76,7 @@ export function LessonScreen({ lesson, onDone }: Props) {
       return;
     }
 
-    const nextFeedback = checkExercise(exercise, selectedChoices, typedAnswer, index);
-    setFeedback(nextFeedback);
+    setFeedback(checkExercise(exercise, selectedChoices, typedAnswer, index));
     setSubmitted(true);
   }
 
@@ -89,13 +92,15 @@ export function LessonScreen({ lesson, onDone }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ProgressDots current={index} total={lesson.exercises.length} />
-      <View style={styles.levelRow}>
-        <Text style={styles.level}>{exercise.level}</Text>
-        <Text style={styles.reference}>{exercise.reference}</Text>
+      <View style={styles.topPanel}>
+        <ProgressDots current={index} total={lesson.exercises.length} />
+        <View style={styles.levelRow}>
+          <LevelPill level={exercise.level} />
+          <Text style={styles.reference}>{exercise.reference}</Text>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Mascot tone={feedback.tone} message={feedback.message} />
         <View style={styles.card}>
           <Text style={styles.title}>{exercise.title}</Text>
@@ -104,17 +109,13 @@ export function LessonScreen({ lesson, onDone }: Props) {
         </View>
       </ScrollView>
 
-      <Pressable
-        disabled={!canCheck && !submitted && exercise.level !== 'N0' && exercise.level !== 'N6'}
-        style={({ pressed }) => [
-          styles.primaryButton,
-          !canCheck && !submitted && exercise.level !== 'N0' && exercise.level !== 'N6' ? styles.disabledButton : null,
-          pressed ? styles.pressedButton : null,
-        ]}
-        onPress={handlePrimaryAction}
-      >
-        <Text style={styles.primaryButtonText}>{buttonLabel(exercise, submitted, isLast)}</Text>
-      </Pressable>
+      <View style={styles.footer}>
+        <PrimaryButton
+          disabled={!canCheck && !submitted && exercise.level !== 'N0' && exercise.level !== 'N6'}
+          label={buttonLabel(exercise, submitted, isLast)}
+          onPress={handlePrimaryAction}
+        />
+      </View>
     </View>
   );
 }
@@ -130,17 +131,19 @@ function renderExerciseBody(
 ) {
   if (exercise.level === 'N0') {
     return (
-      <View style={styles.stack}>
-        {exercise.context ? <Text style={styles.context}>{exercise.context}</Text> : null}
-        <Text style={styles.fullText}>{exercise.text}</Text>
-      </View>
+      <BibleTextCard
+        reference={exercise.reference}
+        text={exercise.text}
+        context={exercise.context}
+        theme={exercise.theme}
+      />
     );
   }
 
   if (exercise.level === 'N1' || exercise.level === 'N2') {
     return (
       <View style={styles.stack}>
-        <Text style={styles.promptText}>{exercise.promptText}</Text>
+        <BibleTextCard reference={exercise.reference} text={exercise.promptText ?? ''} theme={exercise.theme} variant="prompt" />
         {exercise.blanks?.map((blank, blankIndex) => (
           <View key={blank.id} style={styles.blankBlock}>
             <Text style={styles.blankLabel}>Gat {blankIndex + 1}</Text>
@@ -170,7 +173,7 @@ function renderExerciseBody(
   if (exercise.level === 'N3') {
     return (
       <View style={styles.stack}>
-        <Text style={styles.promptText}>{exercise.promptText}</Text>
+        <BibleTextCard reference={exercise.reference} text={exercise.promptText ?? ''} theme={exercise.theme} variant="prompt" />
         <TextInput
           value={typedAnswer}
           editable={!submitted}
@@ -188,7 +191,7 @@ function renderExerciseBody(
   if (exercise.level === 'N4') {
     return (
       <View style={styles.stack}>
-        <Text style={styles.initials}>{exercise.firstLetters}</Text>
+        <BibleTextCard reference={exercise.reference} text={exercise.firstLetters ?? ''} theme={exercise.theme} variant="ghost" />
         <TextInput
           value={typedAnswer}
           editable={!submitted}
@@ -207,7 +210,10 @@ function renderExerciseBody(
   if (exercise.level === 'N5') {
     return (
       <View style={styles.stack}>
-        <Text style={styles.referenceOnly}>{exercise.reference}</Text>
+        <View style={styles.recallPrompt}>
+          <Text style={styles.recallReference}>{exercise.reference}</Text>
+          <Text style={styles.recallHint}>Geen tekst meer zichtbaar.</Text>
+        </View>
         <TextInput
           value={typedAnswer}
           editable={!submitted}
@@ -226,10 +232,7 @@ function renderExerciseBody(
   return (
     <View style={styles.stack}>
       {exercise.chainTexts?.map((text) => (
-        <View key={text.id} style={styles.chainItem}>
-          <Text style={styles.chainReference}>{text.reference}</Text>
-          <Text style={styles.chainText}>{text.text}</Text>
-        </View>
+        <BibleTextCard key={text.id} reference={text.reference} text={text.text} theme={text.theme} variant="ghost" />
       ))}
     </View>
   );
@@ -268,11 +271,6 @@ function checkExercise(
 
   if (exercise.level === 'N3') {
     const check = checkTypedWords(exercise.hiddenWords ?? [], typedAnswer);
-    return feedbackFromCheck(check, index);
-  }
-
-  if (exercise.level === 'N4') {
-    const check = checkRecall(exercise.text, typedAnswer, 1);
     return feedbackFromCheck(check, index);
   }
 
@@ -315,24 +313,24 @@ function buttonLabel(exercise: Exercise, submitted: boolean, isLast: boolean): s
 
 function introForExercise(exercise: Exercise): string {
   if (exercise.level === 'N0') {
-    return 'Eerst lezen we de tekst helemaal.';
+    return 'Lees eerst alsof je de tekst onderstreept.';
   }
   if (exercise.level === 'N1') {
-    return 'Een klein stukje hulp valt weg.';
+    return 'Een eerste woord verdwijnt. Je geheugen neemt het over.';
   }
   if (exercise.level === 'N2') {
-    return 'Nu vallen er meerdere woorden weg.';
+    return 'Meer hulp valt weg, maar je krijgt nog keuzes.';
   }
   if (exercise.level === 'N3') {
-    return 'Je typt zelf. Hoofdletters zijn niet spannend.';
+    return 'Nu typ je zelf. Hoofdletters en leestekens zijn niet spannend.';
   }
   if (exercise.level === 'N4') {
-    return 'Alleen de eerste letters blijven over.';
+    return 'Alleen de beginletters blijven staan.';
   }
   if (exercise.level === 'N5') {
-    return 'Alle hulp is weg. Probeer rustig uit je hoofd.';
+    return 'Nu haal je de tekst helemaal zelf op.';
   }
-  return 'Ketting komt later. Vandaag bereiden we alleen de volgorde voor.';
+  return 'Ketting komt later. Vandaag kijken we alleen vooruit.';
 }
 
 function pick(messages: string[], index: number): string {
@@ -342,39 +340,33 @@ function pick(messages: string[], index: number): string {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFF7EA',
+    backgroundColor: '#FFF8EC',
+  },
+  topPanel: {
+    gap: 10,
     paddingHorizontal: 18,
-    paddingBottom: 24,
+    paddingTop: 12,
   },
   levelRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingBottom: 8,
-  },
-  level: {
-    backgroundColor: '#19715F',
-    color: '#FFFFFF',
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    fontSize: 13,
-    fontWeight: '900',
   },
   reference: {
     color: '#6A5B43',
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   content: {
     flexGrow: 1,
     gap: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 110,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#E7D7B9',
     padding: 18,
@@ -398,28 +390,11 @@ const styles = StyleSheet.create({
   stack: {
     gap: 14,
   },
-  context: {
-    color: '#7B5D33',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  fullText: {
-    color: '#22362F',
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 38,
-  },
-  promptText: {
-    color: '#22362F',
-    fontSize: 25,
-    fontWeight: '800',
-    lineHeight: 36,
-  },
   blankBlock: {
     gap: 10,
   },
   blankLabel: {
-    color: '#6A5B43',
+    color: '#8A542B',
     fontSize: 14,
     fontWeight: '900',
     textTransform: 'uppercase',
@@ -428,84 +403,60 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   input: {
-    minHeight: 54,
-    borderRadius: 12,
+    minHeight: 58,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#D8CBB3',
+    borderBottomWidth: 4,
+    borderColor: '#E0CFB0',
+    borderBottomColor: '#CDB993',
     backgroundColor: '#FFFDF8',
-    color: '#22362F',
+    color: '#203A33',
     fontSize: 18,
-    fontWeight: '700',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    fontWeight: '800',
+    paddingHorizontal: 15,
+    paddingVertical: 13,
   },
   largeInput: {
-    minHeight: 118,
+    minHeight: 128,
     textAlignVertical: 'top',
   },
-  initials: {
-    color: '#19715F',
+  recallPrompt: {
+    alignItems: 'center',
+    backgroundColor: '#F4E9D5',
+    borderRadius: 20,
+    gap: 6,
+    padding: 22,
+  },
+  recallReference: {
+    color: '#173F35',
     fontSize: 24,
     fontWeight: '900',
-    letterSpacing: 0,
-    lineHeight: 34,
   },
-  referenceOnly: {
-    color: '#173F35',
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  recallDetails: {
-    backgroundColor: '#F7F0E4',
-    borderRadius: 12,
-    gap: 8,
-    padding: 12,
-  },
-  detailText: {
-    color: '#6A4A25',
+  recallHint: {
+    color: '#7A6B55',
     fontSize: 15,
     fontWeight: '800',
+  },
+  recallDetails: {
+    backgroundColor: '#F7EAD3',
+    borderRadius: 16,
+    gap: 8,
+    padding: 14,
+  },
+  detailText: {
+    color: '#7A4D21',
+    fontSize: 15,
+    fontWeight: '900',
   },
   correctText: {
     color: '#26342F',
     fontSize: 15,
     lineHeight: 22,
   },
-  chainItem: {
-    backgroundColor: '#F7F0E4',
-    borderRadius: 12,
-    padding: 14,
-    gap: 6,
-  },
-  chainReference: {
-    color: '#B06535',
-    fontSize: 13,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  chainText: {
-    color: '#22362F',
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 26,
-  },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#19715F',
-    borderRadius: 14,
-    minHeight: 58,
-    justifyContent: 'center',
-    marginTop: 6,
-  },
-  disabledButton: {
-    opacity: 0.45,
-  },
-  pressedButton: {
-    transform: [{ scale: 0.99 }],
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
+  footer: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 22,
   },
 });
