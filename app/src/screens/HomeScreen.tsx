@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HomeHero } from '../components/HomeHero';
 import { LessonCard } from '../components/LessonCard';
@@ -8,9 +8,10 @@ import type { Lesson } from '../engine/exerciseBuilder';
 type Props = {
   lesson: Lesson;
   onStart: () => void;
+  onReviewOnboarding: () => void;
 };
 
-export function HomeScreen({ lesson, onStart }: Props) {
+export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -48,6 +49,9 @@ export function HomeScreen({ lesson, onStart }: Props) {
 
       <View style={styles.footer}>
         <PrimaryButton label="Start les" onPress={onStart} />
+        <Pressable style={styles.reviewButton} onPress={onReviewOnboarding}>
+          <Text style={styles.reviewText}>Uitleg opnieuw bekijken</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -62,7 +66,7 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingHorizontal: 20,
     paddingTop: 24,
-    paddingBottom: 110,
+    paddingBottom: 138,
   },
   todayCard: {
     backgroundColor: '#FFFFFF',
@@ -137,6 +141,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
+    bottom: 20,
+    gap: 10,
+  },
+  reviewButton: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  reviewText: {
+    color: '#1E7D68',
+    fontSize: 15,
+    fontWeight: '900',
   },
 });
