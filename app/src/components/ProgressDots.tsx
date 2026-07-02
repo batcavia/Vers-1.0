@@ -7,7 +7,7 @@ type Props = {
 
 export function ProgressDots({ current, total }: Props) {
   return (
-    <View style={styles.row} accessibilityLabel={`Stap ${current + 1} van ${total}`}>
+    <View style={styles.track} accessibilityLabel={`Stap ${current + 1} van ${total}`}>
       {Array.from({ length: total }).map((_, index) => (
         <View
           key={index}
@@ -23,23 +23,26 @@ export function ProgressDots({ current, total }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: {
+  track: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 7,
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F4E9D5',
+    borderRadius: 999,
   },
   dot: {
-    width: 10,
+    flex: 1,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#E0D5C0',
+    borderRadius: 6,
+    backgroundColor: '#DDCDB0',
   },
   activeDot: {
-    width: 24,
-    backgroundColor: '#19715F',
+    flex: 1.6,
+    backgroundColor: '#1E7D68',
   },
   doneDot: {
-    backgroundColor: '#85B79D',
+    backgroundColor: '#8BC6A5',
   },
 });
