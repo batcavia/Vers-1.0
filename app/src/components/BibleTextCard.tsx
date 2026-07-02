@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   text: {
     color: '#203A33',
     fontSize: 24,
-    fontWeight: '850',
+    fontWeight: '800',
     lineHeight: 35,
   },
   promptText: {
