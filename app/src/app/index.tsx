@@ -14,30 +14,28 @@ type Route = 'onboarding' | 'home' | 'lesson' | 'done';
 export default function IndexScreen() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [route, setRoute] = useState<Route>('onboarding');
-  const [lessonIndex, setLessonIndex] = useState(0);
-  const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, lessonIndex), [lessonIndex]);
+  const [themeIndex, setThemeIndex] = useState(0);
+  const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, themeIndex), [themeIndex]);
 
   function finishOnboarding() {
-    if (hasSeenOnboarding) {
-      setRoute('home');
-      return;
-    }
-
     setHasSeenOnboarding(true);
-    setRoute('lesson');
+    setRoute('home');
   }
 
   function reviewOnboarding() {
     setRoute('onboarding');
   }
 
-  function startLesson() {
+  function startLesson(nextThemeIndex?: number) {
+    if (typeof nextThemeIndex === 'number') {
+      setThemeIndex(nextThemeIndex);
+    }
     setRoute('lesson');
   }
 
   function startAnotherLesson() {
-    setLessonIndex((index) => index + 1);
-    setRoute('lesson');
+    setThemeIndex((index) => index + 1);
+    setRoute('home');
   }
 
   return (
