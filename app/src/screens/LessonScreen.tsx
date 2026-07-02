@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import { AnswerOption } from '../components/AnswerOption';
@@ -9,8 +9,7 @@ import { LevelPill } from '../components/LevelPill';
 import { Mascot } from '../components/Mascot';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ProgressDots } from '../components/ProgressDots';
-import { checkRecall, checkTypedWords, normalizeAnswer } from '../engine/answerCheck';
-import type { RecallCheck } from '../engine/answerCheck';
+import { normalizeAnswer } from '../engine/answerCheck';
 import type { ChoiceBlank, Exercise, Lesson } from '../engine/exerciseBuilder';
 
 type Props = {
@@ -21,69 +20,91 @@ type Props = {
 type FeedbackState = {
   tone: FeedbackTone;
   message: string;
-  check?: RecallCheck;
 };
 
 const CORRECT_MESSAGES = [
   'Mooi onthouden.',
   'Dat zat stevig.',
-  'Goed. De volgende stap krijgt minder hulp.',
+  'Goed. De volgende plek krijgt minder hulp.',
   'Je haalt hem al beter op uit je geheugen.',
 ];
 
 const ALMOST_MESSAGES = [
-  'Bijna. Een woord zat nog niet goed.',
-  'De kern had je. We oefenen hem nog een keer.',
+  'Bijna. Kijk nog even naar deze plek.',
+  'De kern had je. Kies rustig opnieuw.',
   'Let op de volgorde van deze woorden.',
 ];
 
 const MISS_MESSAGES = [
-  'Geen probleem. We geven iets meer hulp.',
+  'Geen probleem. We blijven bij deze plek.',
   'Rustig opnieuw. Eerst met meer steun.',
   'Dit hoort bij leren. Je bouwt de tekst laag voor laag op.',
 ];
 
 export function LessonScreen({ lesson, onDone }: Props) {
   const [index, setIndex] = useState(0);
-  const [selectedChoices, setSelectedChoices] = useState<Record<string, string>>({});
-  const [typedAnswer, setTypedAnswer] = useState('');
+  const [activeBlankIndex, setActiveBlankIndex] = useState(0);
+  const [checkedBlankIds, setCheckedBlankIds] = useState<Record<string, boolean>>({});
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [celebrationKey, setCelebrationKey] = useState(0);
-  const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'idle', message: 'Eerst stevig kijken. Daarna halen we steeds meer hulp weg.' });
+  const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'idle', message: 'Kies een plek. We vinken ze een voor een af.' });
   const exercise = lesson.exercises[index];
   const isLast = index === lesson.exercises.length - 1;
+  const activeBlank = exercise.blanks?.[activeBlankIndex];
 
   useEffect(() => {
-    setSelectedChoices({});
-    setTypedAnswer('');
+    setActiveBlankIndex(0);
+    setCheckedBlankIds({});
+    setSelectedOption(null);
     setSubmitted(false);
     setFeedback({ tone: 'idle', message: introForExercise(exercise) });
   }, [exercise]);
 
-  function choose(blank: ChoiceBlank, option: string) {
+  function choose(option: string) {
     if (submitted) {
       return;
     }
-    setSelectedChoices((current) => ({ ...current, [blank.id]: option }));
+    setSelectedOption(option);
   }
 
   function handlePrimaryAction() {
-    if (exercise.level === 'N0' || exercise.level === 'N6') {
+    if (exercise.level === 'N0' || exercise.level === 'N4' || exercise.level === 'N6') {
+      goNext();
+      return;
+    }
+
+    if (!activeBlank) {
       goNext();
       return;
     }
 
     if (submitted) {
-      goNext();
+      advanceBlankOrExercise();
       return;
     }
 
-    const nextFeedback = checkExercise(exercise, selectedChoices, typedAnswer, index);
-    if (nextFeedback.tone === 'correct') {
+    const isCorrect = normalizeAnswer(selectedOption ?? '') === normalizeAnswer(activeBlank.answer);
+    if (isCorrect) {
+      setCheckedBlankIds((current) => ({ ...current, [activeBlank.id]: true }));
       setCelebrationKey((key) => key + 1);
+      setFeedback({ tone: 'correct', message: pick(CORRECT_MESSAGES, activeBlankIndex) });
+    } else {
+      setFeedback({ tone: selectedOption ? 'almost' : 'miss', message: selectedOption ? pick(ALMOST_MESSAGES, activeBlankIndex) : pick(MISS_MESSAGES, activeBlankIndex) });
     }
-    setFeedback(nextFeedback);
     setSubmitted(true);
+  }
+
+  function advanceBlankOrExercise() {
+    const blanks = exercise.blanks ?? [];
+    if (activeBlankIndex < blanks.length - 1) {
+      setActiveBlankIndex((current) => current + 1);
+      setSelectedOption(null);
+      setSubmitted(false);
+      setFeedback({ tone: 'idle', message: `Plek ${activeBlankIndex + 2} staat klaar.` });
+      return;
+    }
+    goNext();
   }
 
   function goNext() {
@@ -94,7 +115,7 @@ export function LessonScreen({ lesson, onDone }: Props) {
     setIndex((current) => current + 1);
   }
 
-  const canCheck = canSubmit(exercise, selectedChoices, typedAnswer);
+  const canCheck = Boolean(selectedOption) || submitted || exercise.level === 'N0' || exercise.level === 'N4' || exercise.level === 'N6';
 
   return (
     <View style={styles.screen}>
@@ -112,16 +133,12 @@ export function LessonScreen({ lesson, onDone }: Props) {
         <View style={styles.card}>
           <Text style={styles.title}>{exercise.title}</Text>
           <Text style={styles.instruction}>{exercise.instruction}</Text>
-          {renderExerciseBody(exercise, selectedChoices, submitted, typedAnswer, setTypedAnswer, choose, feedback.check)}
+          {renderExerciseBody(exercise, activeBlank, activeBlankIndex, checkedBlankIds, selectedOption, submitted, choose)}
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <PrimaryButton
-          disabled={!canCheck && !submitted && exercise.level !== 'N0' && exercise.level !== 'N6'}
-          label={buttonLabel(exercise, submitted, isLast)}
-          onPress={handlePrimaryAction}
-        />
+        <PrimaryButton disabled={!canCheck} label={buttonLabel(exercise, submitted, isLast, activeBlankIndex)} onPress={handlePrimaryAction} />
       </View>
     </View>
   );
@@ -129,68 +146,65 @@ export function LessonScreen({ lesson, onDone }: Props) {
 
 function renderExerciseBody(
   exercise: Exercise,
-  selectedChoices: Record<string, string>,
+  activeBlank: ChoiceBlank | undefined,
+  activeBlankIndex: number,
+  checkedBlankIds: Record<string, boolean>,
+  selectedOption: string | null,
   submitted: boolean,
-  typedAnswer: string,
-  setTypedAnswer: (value: string) => void,
-  choose: (blank: ChoiceBlank, option: string) => void,
-  check?: RecallCheck,
+  choose: (option: string) => void,
 ) {
   if (exercise.level === 'N0') {
     return (
-      <BibleTextCard
-        reference={exercise.reference}
-        text={exercise.text}
-        context={exercise.context}
-        theme={exercise.theme}
-      />
-    );
-  }
-
-  if (exercise.level === 'N1' || exercise.level === 'N2') {
-    return (
       <View style={styles.stack}>
-        <BibleTextCard reference={exercise.reference} text={exercise.promptText ?? ''} theme={exercise.theme} variant="prompt" />
-        {exercise.blanks?.map((blank, blankIndex) => (
-          <View key={blank.id} style={styles.blankBlock}>
-            <Text style={styles.blankLabel}>Gat {blankIndex + 1}</Text>
-            <View style={styles.optionsGrid}>
-              {blank.options.map((option) => {
-                const selected = selectedChoices[blank.id] === option;
-                const isAnswer = normalizeAnswer(option) === normalizeAnswer(blank.answer);
-                const correctness = submitted && (selected || isAnswer) ? isAnswer : undefined;
-                return (
-                  <AnswerOption
-                    key={option}
-                    label={option}
-                    selected={selected}
-                    correct={correctness}
-                    disabled={submitted}
-                    onPress={() => choose(blank, option)}
-                  />
-                );
-              })}
-            </View>
-          </View>
+        {exercise.chainTexts?.map((text) => (
+          <BibleTextCard key={text.id} reference={text.reference} text={text.text} context={text.context} theme={text.theme} />
         ))}
       </View>
     );
   }
 
-  if (exercise.level === 'N3') {
+  if (exercise.level === 'N1' || exercise.level === 'N2') {
+    if (!activeBlank) {
+      return null;
+    }
+
     return (
       <View style={styles.stack}>
-        <BibleTextCard reference={exercise.reference} text={exercise.promptText ?? ''} theme={exercise.theme} variant="prompt" />
-        <TextInput
-          value={typedAnswer}
-          editable={!submitted}
-          style={styles.input}
-          placeholder="Typ de ontbrekende woorden"
-          placeholderTextColor="#9B8D77"
-          autoCapitalize="none"
-          onChangeText={setTypedAnswer}
-        />
-        {check ? <RecallDetails check={check} expected={exercise.hiddenWords?.join(' ') ?? ''} /> : null}
+        <View style={styles.checkRow}>
+          {(exercise.blanks ?? []).map((blank, index) => (
+            <View
+              key={blank.id}
+              style={[
+                styles.checkDot,
+                checkedBlankIds[blank.id] ? styles.checkedDot : null,
+                index === activeBlankIndex ? styles.activeDot : null,
+              ]}
+            >
+              <Text style={[styles.checkDotText, checkedBlankIds[blank.id] ? styles.checkedDotText : null]}>
+                {checkedBlankIds[blank.id] ? '✓' : index + 1}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <BibleTextCard reference={activeBlank.reference} text={activeBlank.promptText} theme={activeBlank.theme} variant="prompt" />
+        <Text style={styles.placeLabel}>Plek {activeBlankIndex + 1} afvinken</Text>
+        <View style={styles.optionsGrid}>
+          {activeBlank.options.map((option) => {
+            const selected = selectedOption === option;
+            const isAnswer = normalizeAnswer(option) === normalizeAnswer(activeBlank.answer);
+            const correctness = submitted && (selected || isAnswer) ? isAnswer : undefined;
+            return (
+              <AnswerOption
+                key={option}
+                label={option}
+                selected={selected}
+                correct={correctness}
+                disabled={submitted}
+                onPress={() => choose(option)}
+              />
+            );
+          })}
+        </View>
       </View>
     );
   }
@@ -198,40 +212,8 @@ function renderExerciseBody(
   if (exercise.level === 'N4') {
     return (
       <View style={styles.stack}>
-        <BibleTextCard reference={exercise.reference} text={exercise.firstLetters ?? ''} theme={exercise.theme} variant="ghost" />
-        <TextInput
-          value={typedAnswer}
-          editable={!submitted}
-          style={[styles.input, styles.largeInput]}
-          placeholder="Typ de volledige tekst"
-          placeholderTextColor="#9B8D77"
-          multiline
-          autoCapitalize="none"
-          onChangeText={setTypedAnswer}
-        />
-        {check ? <RecallDetails check={check} expected={exercise.text} /> : null}
-      </View>
-    );
-  }
-
-  if (exercise.level === 'N5') {
-    return (
-      <View style={styles.stack}>
-        <View style={styles.recallPrompt}>
-          <Text style={styles.recallReference}>{exercise.reference}</Text>
-          <Text style={styles.recallHint}>Geen tekst meer zichtbaar.</Text>
-        </View>
-        <TextInput
-          value={typedAnswer}
-          editable={!submitted}
-          style={[styles.input, styles.largeInput]}
-          placeholder="Typ de tekst uit je hoofd"
-          placeholderTextColor="#9B8D77"
-          multiline
-          autoCapitalize="none"
-          onChangeText={setTypedAnswer}
-        />
-        {check ? <RecallDetails check={check} expected={exercise.text} /> : null}
+        <BibleTextCard reference={exercise.reference} text={exercise.firstLetters ?? ''} variant="ghost" />
+        <Text style={styles.helperText}>Zeg de teksten hardop of in gedachten. Je hoeft niets over te typen.</Text>
       </View>
     );
   }
@@ -245,99 +227,36 @@ function renderExerciseBody(
   );
 }
 
-function RecallDetails({ check, expected }: { check: RecallCheck; expected: string }) {
-  return (
-    <View style={styles.recallDetails}>
-      {check.missingWords.length > 0 ? (
-        <Text style={styles.detailText}>Nog oefenen: {check.missingWords.join(', ')}</Text>
-      ) : (
-        <Text style={styles.detailText}>Alles zat erin.</Text>
-      )}
-      <Text style={styles.correctText}>Correcte tekst: {expected}</Text>
-    </View>
-  );
-}
-
-function checkExercise(
-  exercise: Exercise,
-  selectedChoices: Record<string, string>,
-  typedAnswer: string,
-  index: number,
-): FeedbackState {
-  if (exercise.level === 'N1' || exercise.level === 'N2') {
-    const blanks = exercise.blanks ?? [];
-    const missing = blanks.filter((blank) => normalizeAnswer(selectedChoices[blank.id] ?? '') !== normalizeAnswer(blank.answer));
-    if (missing.length === 0) {
-      return { tone: 'correct', message: pick(CORRECT_MESSAGES, index) };
-    }
-    return {
-      tone: missing.length === 1 ? 'almost' : 'miss',
-      message: missing.length === 1 ? pick(ALMOST_MESSAGES, index) : pick(MISS_MESSAGES, index),
-    };
-  }
-
-  if (exercise.level === 'N3') {
-    const check = checkTypedWords(exercise.hiddenWords ?? [], typedAnswer);
-    return feedbackFromCheck(check, index);
-  }
-
-  const check = checkRecall(exercise.text, typedAnswer, 1);
-  return feedbackFromCheck(check, index);
-}
-
-function feedbackFromCheck(check: RecallCheck, index: number): FeedbackState {
-  if (check.closeness === 'correct') {
-    return { tone: 'correct', message: pick(CORRECT_MESSAGES, index), check };
-  }
-  if (check.closeness === 'almost') {
-    return { tone: 'almost', message: pick(ALMOST_MESSAGES, index), check };
-  }
-  return { tone: 'miss', message: pick(MISS_MESSAGES, index), check };
-}
-
-function canSubmit(exercise: Exercise, selectedChoices: Record<string, string>, typedAnswer: string): boolean {
-  if (exercise.level === 'N1' || exercise.level === 'N2') {
-    return (exercise.blanks ?? []).every((blank) => Boolean(selectedChoices[blank.id]));
-  }
-  if (exercise.level === 'N3' || exercise.level === 'N4' || exercise.level === 'N5') {
-    return typedAnswer.trim().length > 0;
-  }
-  return true;
-}
-
-function buttonLabel(exercise: Exercise, submitted: boolean, isLast: boolean): string {
+function buttonLabel(exercise: Exercise, submitted: boolean, isLast: boolean, activeBlankIndex: number): string {
   if (exercise.level === 'N0') {
-    return 'Ik heb hem gelezen';
+    return 'Ik heb ze gelezen';
+  }
+  if (exercise.level === 'N4') {
+    return 'Verder';
   }
   if (exercise.level === 'N6') {
     return isLast ? 'Afronden' : 'Verder';
   }
   if (submitted) {
-    return isLast ? 'Afronden' : 'Verder';
+    return 'Volgende plek';
   }
-  return 'Controleer';
+  return `Controleer plek ${activeBlankIndex + 1}`;
 }
 
 function introForExercise(exercise: Exercise): string {
   if (exercise.level === 'N0') {
-    return 'Lees eerst alsof je de tekst onderstreept.';
+    return 'Eerst lezen we de teksten binnen dit thema.';
   }
   if (exercise.level === 'N1') {
-    return 'Een eerste woord verdwijnt. Je geheugen neemt het over.';
+    return 'We beginnen met plek 1 per tekst.';
   }
   if (exercise.level === 'N2') {
-    return 'Meer hulp valt weg, maar je krijgt nog keuzes.';
-  }
-  if (exercise.level === 'N3') {
-    return 'Nu typ je zelf. Hoofdletters en leestekens zijn niet spannend.';
+    return 'Nu vink je meer plekken af, een voor een.';
   }
   if (exercise.level === 'N4') {
-    return 'Alleen de beginletters blijven staan.';
+    return 'Alleen eerste letters blijven over. Geen typen nodig.';
   }
-  if (exercise.level === 'N5') {
-    return 'Nu haal je de tekst helemaal zelf op.';
-  }
-  return 'Ketting komt later. Vandaag kijken we alleen vooruit.';
+  return 'Bekijk alvast hoe de teksten straks als ketting samenkomen.';
 }
 
 function pick(messages: string[], index: number): string {
@@ -397,10 +316,38 @@ const styles = StyleSheet.create({
   stack: {
     gap: 14,
   },
-  blankBlock: {
-    gap: 10,
+  checkRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  blankLabel: {
+  checkDot: {
+    alignItems: 'center',
+    backgroundColor: '#F1E3CA',
+    borderColor: '#D7C39C',
+    borderRadius: 16,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  activeDot: {
+    borderColor: '#1E7D68',
+    borderWidth: 2,
+  },
+  checkedDot: {
+    backgroundColor: '#1E7D68',
+    borderColor: '#1E7D68',
+  },
+  checkDotText: {
+    color: '#7A5A32',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  checkedDotText: {
+    color: '#FFFFFF',
+  },
+  placeLabel: {
     color: '#8A542B',
     fontSize: 14,
     fontWeight: '900',
@@ -409,56 +356,14 @@ const styles = StyleSheet.create({
   optionsGrid: {
     gap: 10,
   },
-  input: {
-    minHeight: 58,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderBottomWidth: 4,
-    borderColor: '#E0CFB0',
-    borderBottomColor: '#CDB993',
-    backgroundColor: '#FFFDF8',
-    color: '#203A33',
-    fontSize: 18,
-    fontWeight: '800',
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-  },
-  largeInput: {
-    minHeight: 128,
-    textAlignVertical: 'top',
-  },
-  recallPrompt: {
-    alignItems: 'center',
-    backgroundColor: '#F4E9D5',
-    borderRadius: 20,
-    gap: 6,
-    padding: 22,
-  },
-  recallReference: {
-    color: '#173F35',
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  recallHint: {
-    color: '#7A6B55',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  recallDetails: {
+  helperText: {
     backgroundColor: '#F7EAD3',
     borderRadius: 16,
-    gap: 8,
-    padding: 14,
-  },
-  detailText: {
-    color: '#7A4D21',
+    color: '#6B5D48',
     fontSize: 15,
-    fontWeight: '900',
-  },
-  correctText: {
-    color: '#26342F',
-    fontSize: 15,
+    fontWeight: '800',
     lineHeight: 22,
+    padding: 14,
   },
   footer: {
     position: 'absolute',
