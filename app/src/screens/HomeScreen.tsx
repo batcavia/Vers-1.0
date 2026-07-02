@@ -2,52 +2,67 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HomeHero } from '../components/HomeHero';
 import { PrimaryButton } from '../components/PrimaryButton';
-import type { Lesson } from '../engine/exerciseBuilder';
+import type { Lesson, LessonTheme } from '../engine/exerciseBuilder';
 
 type Props = {
   lesson: Lesson;
+  completedCourses: Record<string, number>;
   onStart: (themeIndex?: number) => void;
   onReviewOnboarding: () => void;
 };
 
-export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
+export function HomeScreen({ lesson, completedCourses, onStart, onReviewOnboarding }: Props) {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <HomeHero title="Kies je thema" translation={lesson.translation} reference={lesson.activeTheme.title} />
+        <HomeHero title="Vandaag leren" translation={lesson.translation} reference="Kies je cursus" />
 
         <View style={styles.introCard}>
-          <Text style={styles.kicker}>Vandaag leren</Text>
-          <Text style={styles.title}>Welke teksten wil je oefenen?</Text>
+          <Text style={styles.kicker}>Cursusmenu</Text>
+          <Text style={styles.title}>Wat wil je leren?</Text>
           <Text style={styles.description}>
-            Kies een thema. In de les oefen je meerdere Bijbelteksten tegelijk en vink je missende woorden plek voor plek af.
+            Kies een cursus met Bijbelteksten, thema's of Bijbelkennis. Elke cursus heeft korte niveaus en kan na afronding opnieuw geoefend worden.
           </Text>
         </View>
 
         <View style={styles.themeSection}>
-          <Text style={styles.sectionTitle}>Thema's</Text>
-          {lesson.themes.map((theme, index) => (
-            <View key={theme.id} style={[styles.themeCard, theme.id === lesson.activeTheme.id ? styles.activeTheme : null]}>
-              <View style={styles.themeHeader}>
-                <View style={styles.themeNumber}>
-                  <Text style={styles.themeNumberText}>{index + 1}</Text>
+          <Text style={styles.sectionTitle}>Cursussen</Text>
+          {lesson.themes.map((theme, index) => {
+            const completionCount = completedCourses[theme.id] ?? 0;
+            const isCompleted = completionCount > 0;
+            const labels = getCourseLabels(theme, lesson);
+
+            return (
+              <View key={theme.id} style={[styles.themeCard, theme.id === lesson.activeTheme.id ? styles.activeTheme : null]}>
+                <View style={styles.themeHeader}>
+                  <View style={[styles.themeNumber, isCompleted ? styles.completedNumber : null]}>
+                    <Text style={styles.themeNumberText}>{isCompleted ? '✓' : index + 1}</Text>
+                  </View>
+                  <View style={styles.themeCopy}>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.themeTitle}>{theme.title}</Text>
+                      {isCompleted ? <Text style={styles.earnedPill}>Badge</Text> : null}
+                    </View>
+                    <Text style={styles.themeDescription}>{theme.description}</Text>
+                  </View>
                 </View>
-                <View style={styles.themeCopy}>
-                  <Text style={styles.themeTitle}>{theme.title}</Text>
-                  <Text style={styles.themeDescription}>{theme.description}</Text>
+
+                <View style={styles.metaRow}>
+                  <Text style={styles.levelPill}>{theme.levelCount} niveaus</Text>
+                  <Text style={styles.badgePill}>{theme.badgeTitle}</Text>
+                  {completionCount > 1 ? <Text style={styles.repeatPill}>{completionCount}x gedaan</Text> : null}
                 </View>
+
+                <View style={styles.referenceWrap}>
+                  {labels.map((label) => (
+                    <Text key={`${theme.id}-${label}`} style={styles.referencePill}>{label}</Text>
+                  ))}
+                </View>
+
+                <PrimaryButton label={isCompleted ? 'Opnieuw oefenen' : 'Start cursus'} onPress={() => onStart(index)} />
               </View>
-              <View style={styles.referenceWrap}>
-                {theme.textIds.map((id) => {
-                  const text = lesson.allTexts.find((item) => item.id === id);
-                  return text ? (
-                    <Text key={id} style={styles.referencePill}>{text.reference}</Text>
-                  ) : null;
-                })}
-              </View>
-              <PrimaryButton label="Start dit thema" onPress={() => onStart(index)} />
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.noteCard}>
@@ -64,6 +79,16 @@ export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
       </View>
     </View>
   );
+}
+
+function getCourseLabels(theme: LessonTheme, lesson: Lesson): string[] {
+  if (theme.bookNames) {
+    return [...theme.bookNames.slice(0, 4), '...'];
+  }
+
+  return (theme.textIds ?? [])
+    .map((id) => lesson.allTexts.find((item) => item.id === id)?.reference)
+    .filter((label): label is string => Boolean(label));
 }
 
 const styles = StyleSheet.create({
@@ -97,9 +122,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#173F35',
-    fontSize: 29,
+    fontSize: 31,
     fontWeight: '900',
-    lineHeight: 34,
+    lineHeight: 36,
   },
   description: {
     color: '#58675F',
@@ -121,6 +146,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 14,
     padding: 16,
+    shadowColor: '#6B4D20',
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
   activeTheme: {
     borderColor: '#1E7D68',
@@ -140,6 +169,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 42,
   },
+  completedNumber: {
+    backgroundColor: '#1E7D68',
+    borderBottomColor: '#146453',
+  },
   themeNumberText: {
     color: '#FFFFFF',
     fontSize: 18,
@@ -149,8 +182,15 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
+  titleRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   themeTitle: {
     color: '#173F35',
+    flexShrink: 1,
     fontSize: 21,
     fontWeight: '900',
   },
@@ -158,6 +198,48 @@ const styles = StyleSheet.create({
     color: '#5F6B64',
     fontSize: 15,
     lineHeight: 21,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  levelPill: {
+    backgroundColor: '#E8F5EF',
+    borderRadius: 999,
+    color: '#146453',
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  badgePill: {
+    backgroundColor: '#F7EAD3',
+    borderRadius: 999,
+    color: '#7A5435',
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  earnedPill: {
+    backgroundColor: '#F4C04F',
+    borderRadius: 999,
+    color: '#5C3B00',
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    textTransform: 'uppercase',
+  },
+  repeatPill: {
+    backgroundColor: '#FCECDD',
+    borderRadius: 999,
+    color: '#A54F1E',
+    fontSize: 12,
+    fontWeight: '900',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   referenceWrap: {
     flexDirection: 'row',
