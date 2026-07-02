@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { AnswerOption } from '../components/AnswerOption';
 import { BibleTextCard } from '../components/BibleTextCard';
+import { CelebrationBurst } from '../components/CelebrationBurst';
 import type { FeedbackTone } from '../components/FeedbackBubble';
 import { LevelPill } from '../components/LevelPill';
 import { Mascot } from '../components/Mascot';
@@ -47,6 +48,7 @@ export function LessonScreen({ lesson, onDone }: Props) {
   const [selectedChoices, setSelectedChoices] = useState<Record<string, string>>({});
   const [typedAnswer, setTypedAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [celebrationKey, setCelebrationKey] = useState(0);
   const [feedback, setFeedback] = useState<FeedbackState>({ tone: 'idle', message: 'Eerst stevig kijken. Daarna halen we steeds meer hulp weg.' });
   const exercise = lesson.exercises[index];
   const isLast = index === lesson.exercises.length - 1;
@@ -76,7 +78,11 @@ export function LessonScreen({ lesson, onDone }: Props) {
       return;
     }
 
-    setFeedback(checkExercise(exercise, selectedChoices, typedAnswer, index));
+    const nextFeedback = checkExercise(exercise, selectedChoices, typedAnswer, index);
+    if (nextFeedback.tone === 'correct') {
+      setCelebrationKey((key) => key + 1);
+    }
+    setFeedback(nextFeedback);
     setSubmitted(true);
   }
 
@@ -92,6 +98,7 @@ export function LessonScreen({ lesson, onDone }: Props) {
 
   return (
     <View style={styles.screen}>
+      <CelebrationBurst active={celebrationKey > 0} key={celebrationKey} />
       <View style={styles.topPanel}>
         <ProgressDots current={index} total={lesson.exercises.length} />
         <View style={styles.levelRow}>
