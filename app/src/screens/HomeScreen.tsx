@@ -39,7 +39,7 @@ export function HomeScreen({ lesson, onStart, onReviewOnboarding }: Props) {
               </View>
               <View style={styles.referenceWrap}>
                 {theme.textIds.map((id) => {
-                  const text = lesson.texts.find((item) => item.id === id);
+                  const text = lesson.allTexts.find((item) => item.id === id);
                   return text ? (
                     <Text key={id} style={styles.referencePill}>{text.reference}</Text>
                   ) : null;
