@@ -29,12 +29,12 @@ const SLIDES: OnboardingSlide[] = [
   },
   {
     title: 'Laag voor laag onthouden',
-    body: 'Je begint met de hele tekst. Daarna verdwijnen er steeds meer woorden. Eerst herken je de juiste woorden, daarna vul je ze zelf in, en uiteindelijk probeer je de tekst helemaal uit je hoofd.',
-    mascotMessage: 'De hulp verdwijnt stap voor stap.',
+    body: 'Je kiest eerst een thema met een paar teksten. Daarna verdwijnen sleutelwoorden per plek. Je herkent het juiste woord, vinkt die plek af en gaat rustig door naar de volgende plek.',
+    mascotMessage: 'We oefenen plek voor plek.',
   },
   {
     title: 'Begin klein',
-    body: 'Eén korte les is genoeg om te starten. Liever elke dag een paar minuten met aandacht, dan af en toe heel lang. De teksten komen later terug, zodat ze langzaam in je geheugen zakken.',
+    body: 'Eén korte themales is genoeg om te starten. Liever elke dag een paar minuten met aandacht, dan af en toe heel lang. De teksten komen later terug, zodat ze langzaam in je geheugen zakken.',
     mascotMessage: 'Klein beginnen is sterk beginnen.',
   },
 ];
@@ -74,7 +74,7 @@ export function OnboardingScreen({ onFinish }: Props) {
       </View>
 
       <View style={styles.footer}>
-        <PrimaryButton label={isLast ? 'Start mijn eerste les' : 'Verder'} onPress={continueOnboarding} />
+        <PrimaryButton label={isLast ? 'Kies mijn eerste thema' : 'Verder'} onPress={continueOnboarding} />
       </View>
     </View>
   );

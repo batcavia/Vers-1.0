@@ -10,33 +10,41 @@ import { LessonScreen } from '../screens/LessonScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 
 type Route = 'onboarding' | 'home' | 'lesson' | 'done';
+type CompletionMap = Record<string, number>;
 
 export default function IndexScreen() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [route, setRoute] = useState<Route>('onboarding');
-  const [lessonIndex, setLessonIndex] = useState(0);
-  const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, lessonIndex), [lessonIndex]);
+  const [themeIndex, setThemeIndex] = useState(0);
+  const [completedCourses, setCompletedCourses] = useState<CompletionMap>({});
+  const lesson = useMemo<Lesson>(() => buildLesson(ESSENTIALS_BUNDLE, themeIndex), [themeIndex]);
+  const completionCount = completedCourses[lesson.activeTheme.id] ?? 0;
 
   function finishOnboarding() {
-    if (hasSeenOnboarding) {
-      setRoute('home');
-      return;
-    }
-
     setHasSeenOnboarding(true);
-    setRoute('lesson');
+    setRoute('home');
   }
 
   function reviewOnboarding() {
     setRoute('onboarding');
   }
 
-  function startLesson() {
+  function startLesson(nextThemeIndex?: number) {
+    if (typeof nextThemeIndex === 'number') {
+      setThemeIndex(nextThemeIndex);
+    }
     setRoute('lesson');
   }
 
-  function startAnotherLesson() {
-    setLessonIndex((index) => index + 1);
+  function completeLesson() {
+    setCompletedCourses((courses) => ({
+      ...courses,
+      [lesson.activeTheme.id]: (courses[lesson.activeTheme.id] ?? 0) + 1,
+    }));
+    setRoute('done');
+  }
+
+  function retryCourse() {
     setRoute('lesson');
   }
 
@@ -45,11 +53,21 @@ export default function IndexScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8EC" />
       {route === 'onboarding' ? <OnboardingScreen onFinish={finishOnboarding} /> : null}
       {route === 'home' ? (
-        <HomeScreen lesson={lesson} onStart={startLesson} onReviewOnboarding={reviewOnboarding} />
+        <HomeScreen
+          lesson={lesson}
+          completedCourses={completedCourses}
+          onStart={startLesson}
+          onReviewOnboarding={reviewOnboarding}
+        />
       ) : null}
-      {route === 'lesson' ? <LessonScreen lesson={lesson} onDone={() => setRoute('done')} /> : null}
+      {route === 'lesson' ? <LessonScreen lesson={lesson} onDone={completeLesson} /> : null}
       {route === 'done' ? (
-        <DoneScreen lesson={lesson} onAnotherLesson={startAnotherLesson} onHome={() => setRoute('home')} />
+        <DoneScreen
+          lesson={lesson}
+          completionCount={completionCount}
+          onRetryCourse={retryCourse}
+          onHome={() => setRoute('home')}
+        />
       ) : null}
     </SafeAreaView>
   );
