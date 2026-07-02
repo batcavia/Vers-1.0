@@ -13,8 +13,8 @@ type Props = {
 export function Mascot({ tone, message, compact = false }: Props) {
   const bounce = useRef(new Animated.Value(1)).current;
   const bow = useRef(new Animated.Value(0)).current;
-  const glowOpacity = useRef(new Animated.Value(0.22)).current;
-  const glow = tone === 'correct' ? '#FFE27A' : tone === 'almost' ? '#FFC46B' : tone === 'miss' ? '#F0B69F' : '#FFE7A8';
+  const glowOpacity = useRef(new Animated.Value(0.18)).current;
+  const glow = tone === 'correct' ? '#FFE27A' : tone === 'almost' ? '#FFC46B' : tone === 'miss' ? '#F0B69F' : '#E8D3A8';
   const rotate = bow.interpolate({ inputRange: [-1, 1], outputRange: ['-5deg', '5deg'] });
 
   useEffect(() => {
@@ -32,8 +32,8 @@ export function Mascot({ tone, message, compact = false }: Props) {
         Animated.spring(bow, { toValue: 0, friction: 4, useNativeDriver: true }),
       ]),
       Animated.sequence([
-        Animated.timing(glowOpacity, { toValue: tone === 'correct' ? 0.68 : 0.42, duration: 160, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: 0.22, duration: 300, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: tone === 'correct' ? 0.62 : 0.36, duration: 160, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.18, duration: 300, useNativeDriver: true }),
       ]),
     ]).start();
   }, [bounce, bow, glowOpacity, tone]);
@@ -48,10 +48,11 @@ export function Mascot({ tone, message, compact = false }: Props) {
         ]}
       >
         <Animated.View style={[styles.glow, { backgroundColor: glow, opacity: glowOpacity }]} />
-        <View style={styles.halo} />
         <View style={styles.shadow} />
-        <View style={styles.hoodBack} />
+        <View style={styles.hoodOuter} />
+        <View style={styles.hoodInner} />
         <View style={styles.face}>
+          <View style={styles.hairLine} />
           <View style={styles.browRow}>
             <View style={styles.brow} />
             <View style={styles.brow} />
@@ -64,9 +65,15 @@ export function Mascot({ tone, message, compact = false }: Props) {
           <View style={[styles.mouth, tone === 'miss' ? styles.softMouth : null]} />
           <View style={styles.beard} />
         </View>
+        <View style={styles.ropeLeft} />
+        <View style={styles.ropeRight} />
         <View style={styles.body}>
-          <View style={styles.collar} />
-          <Text style={styles.book}>✦</Text>
+          <View style={styles.sleeveLeft} />
+          <View style={styles.sleeveRight} />
+          <View style={styles.ropeBelt} />
+          <View style={styles.bookWrap}>
+            <Text style={styles.book}>✝</Text>
+          </View>
         </View>
       </Animated.View>
       <FeedbackBubble tone={tone} message={message} />
@@ -79,74 +86,82 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    minHeight: 118,
+    minHeight: 128,
   },
   compactRow: {
-    minHeight: 102,
+    minHeight: 110,
   },
   mascot: {
-    width: 94,
-    height: 110,
+    width: 100,
+    height: 122,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
   compactMascot: {
-    width: 84,
-    height: 98,
+    width: 90,
+    height: 108,
   },
   glow: {
     position: 'absolute',
-    top: 6,
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-  },
-  halo: {
-    position: 'absolute',
-    top: 4,
-    width: 46,
-    height: 14,
-    borderRadius: 999,
-    borderColor: '#F6C96D',
-    borderWidth: 3,
-    transform: [{ rotateX: '55deg' }],
+    top: 8,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
   },
   shadow: {
     position: 'absolute',
     bottom: 0,
-    width: 72,
+    width: 78,
     height: 16,
     borderRadius: 999,
     backgroundColor: '#C9B894',
     opacity: 0.38,
   },
-  hoodBack: {
+  hoodOuter: {
     position: 'absolute',
-    top: 20,
-    width: 70,
-    height: 74,
-    borderRadius: 28,
-    backgroundColor: '#8B633F',
-    borderRightColor: '#664629',
-    borderRightWidth: 5,
-    borderBottomColor: '#664629',
-    borderBottomWidth: 5,
+    top: 12,
+    width: 82,
+    height: 82,
+    borderTopLeftRadius: 42,
+    borderTopRightRadius: 42,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    backgroundColor: '#6F4729',
+    borderRightColor: '#4D2F1A',
+    borderRightWidth: 6,
+    borderBottomColor: '#4D2F1A',
+    borderBottomWidth: 6,
+  },
+  hoodInner: {
+    position: 'absolute',
+    top: 24,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#4D2F1A',
   },
   face: {
     position: 'absolute',
     top: 30,
-    width: 54,
-    height: 58,
+    width: 50,
+    height: 56,
     borderRadius: 25,
-    backgroundColor: '#F1C9A6',
+    backgroundColor: '#F0C5A0',
     alignItems: 'center',
-    borderRightColor: '#D7A883',
+    borderRightColor: '#D59E76',
     borderRightWidth: 4,
+  },
+  hairLine: {
+    width: 30,
+    height: 8,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    backgroundColor: '#EFE8DD',
   },
   browRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 14,
+    marginTop: 5,
   },
   brow: {
     width: 11,
@@ -185,42 +200,90 @@ const styles = StyleSheet.create({
   },
   beard: {
     position: 'absolute',
-    bottom: -11,
-    width: 38,
-    height: 23,
+    bottom: -14,
+    width: 40,
+    height: 27,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     backgroundColor: '#F4EFE6',
     borderRightColor: '#D8CFC0',
     borderRightWidth: 3,
   },
+  ropeLeft: {
+    position: 'absolute',
+    top: 79,
+    left: 38,
+    width: 3,
+    height: 28,
+    backgroundColor: '#D9B36F',
+    transform: [{ rotate: '9deg' }],
+  },
+  ropeRight: {
+    position: 'absolute',
+    top: 79,
+    right: 38,
+    width: 3,
+    height: 28,
+    backgroundColor: '#D9B36F',
+    transform: [{ rotate: '-9deg' }],
+  },
   body: {
-    width: 72,
-    height: 42,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    width: 80,
+    height: 48,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderBottomLeftRadius: 14,
     borderBottomRightRadius: 14,
-    backgroundColor: '#7A5435',
-    borderRightColor: '#5B3B23',
-    borderRightWidth: 5,
-    borderBottomColor: '#5B3B23',
-    borderBottomWidth: 5,
+    backgroundColor: '#7A4F2F',
+    borderRightColor: '#54331D',
+    borderRightWidth: 6,
+    borderBottomColor: '#54331D',
+    borderBottomWidth: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  collar: {
+  sleeveLeft: {
     position: 'absolute',
-    top: 5,
-    width: 30,
-    height: 12,
-    borderRadius: 12,
-    backgroundColor: '#E8D4B8',
+    left: -7,
+    top: 11,
+    width: 20,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#6F4729',
+    transform: [{ rotate: '14deg' }],
+  },
+  sleeveRight: {
+    position: 'absolute',
+    right: -7,
+    top: 11,
+    width: 20,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#54331D',
+    transform: [{ rotate: '-14deg' }],
+  },
+  ropeBelt: {
+    position: 'absolute',
+    top: 18,
+    width: 58,
+    height: 4,
+    borderRadius: 4,
+    backgroundColor: '#D9B36F',
+  },
+  bookWrap: {
+    marginTop: 16,
+    width: 28,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: '#2F5D50',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightColor: '#1F4037',
+    borderRightWidth: 3,
   },
   book: {
     color: '#FFE7A8',
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '900',
-    marginTop: 8,
   },
 });
