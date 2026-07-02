@@ -1,12 +1,23 @@
 import type { BibleBundle, BibleText } from '../data/bibleBundles';
 import { firstLettersForText, normalizeAnswer } from './answerCheck';
 
-export type ExerciseLevel = 'N0' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6';
+export type ExerciseLevel = 'N0' | 'N1' | 'N2' | 'N4' | 'N6';
 
 export type ChoiceBlank = {
   id: string;
   answer: string;
   options: string[];
+  reference: string;
+  text: string;
+  promptText: string;
+  theme: string;
+};
+
+export type LessonTheme = {
+  id: string;
+  title: string;
+  description: string;
+  textIds: string[];
 };
 
 export type Exercise = {
@@ -20,7 +31,6 @@ export type Exercise = {
   text: string;
   promptText?: string;
   blanks?: ChoiceBlank[];
-  hiddenWords?: string[];
   firstLetters?: string;
   chainTexts?: BibleText[];
 };
@@ -34,129 +44,110 @@ export type Lesson = {
   futureSourcesNote: string;
   texts: BibleText[];
   focusText: BibleText;
+  themes: LessonTheme[];
+  activeTheme: LessonTheme;
   exercises: Exercise[];
 };
 
-export function buildLesson(bundle: BibleBundle, lessonIndex = 0): Lesson {
-  const focusText = bundle.texts[lessonIndex % bundle.texts.length];
-  const chainTexts = [
-    focusText,
-    bundle.texts[(lessonIndex + 1) % bundle.texts.length],
-    bundle.texts[(lessonIndex + 2) % bundle.texts.length],
-  ];
+export const LESSON_THEMES: LessonTheme[] = [
+  {
+    id: 'vertrouwen-en-rust',
+    title: 'Vertrouwen en rust',
+    description: 'Teksten voor momenten waarop je steun, rust en richting zoekt.',
+    textIds: ['psalm-23-1', 'matthew-11-28', 'isaiah-41-10', 'psalm-119-105'],
+  },
+  {
+    id: 'gebed-en-vrede',
+    title: 'Gebed en vrede',
+    description: 'Teksten over zorgen loslaten, bidden en Gods vrede ontvangen.',
+    textIds: ['philippians-4-6', 'philippians-4-7', 'romans-12-12'],
+  },
+  {
+    id: 'geloof-en-hoop',
+    title: 'Geloof en hoop',
+    description: 'Kernteksten over liefde, geloof en hoopvolle volharding.',
+    textIds: ['john-3-16', 'romans-8-28', 'hebrews-11-1'],
+  },
+];
+
+export function buildLesson(bundle: BibleBundle, themeIndex = 0): Lesson {
+  const activeTheme = LESSON_THEMES[themeIndex % LESSON_THEMES.length];
+  const texts = activeTheme.textIds
+    .map((id) => bundle.texts.find((text) => text.id === id))
+    .filter((text): text is BibleText => Boolean(text));
+  const focusText = texts[0] ?? bundle.texts[0];
   const exercises: Exercise[] = [
-    buildReadExercise(focusText),
-    buildSingleChoiceExercise(focusText),
-    buildMultiChoiceExercise(focusText),
-    buildTypedBlankExercise(focusText),
-    buildInitialsExercise(focusText),
-    buildFreeRecallExercise(focusText),
-    buildChainPreviewExercise(chainTexts),
+    buildReadSetExercise(activeTheme, texts),
+    buildSingleCheckoffExercise(texts),
+    buildMultiCheckoffExercise(texts),
+    buildFirstLettersSetExercise(activeTheme, texts),
+    buildChainPreviewExercise(texts),
   ];
 
   return {
-    id: `${bundle.id}-${focusText.id}`,
-    title: bundle.name,
-    description: bundle.description,
+    id: `${bundle.id}-${activeTheme.id}`,
+    title: activeTheme.title,
+    description: activeTheme.description,
     translation: bundle.translation,
     sourceNote: bundle.sourceNote,
     futureSourcesNote: bundle.futureSourcesNote,
-    texts: bundle.texts,
+    texts,
     focusText,
+    themes: LESSON_THEMES,
+    activeTheme,
     exercises,
   };
 }
 
-function buildReadExercise(text: BibleText): Exercise {
+function buildReadSetExercise(theme: LessonTheme, texts: BibleText[]): Exercise {
   return {
-    id: `${text.id}-read`,
+    id: `${theme.id}-read-set`,
     level: 'N0',
-    title: 'Lees de hele tekst',
-    instruction: 'Neem eerst de volledige tekst op. Straks verdwijnt de hulp stap voor stap.',
-    reference: text.reference,
-    context: text.context,
-    theme: text.theme,
-    text: text.text,
+    title: 'Lees de teksten',
+    instruction: 'Kijk eerst rustig naar de teksten in dit thema. Daarna vallen woorden per plek weg.',
+    reference: theme.title,
+    context: theme.description,
+    text: texts.map((text) => `${text.reference}: ${text.text}`).join('\n'),
+    chainTexts: texts,
   };
 }
 
-function buildSingleChoiceExercise(text: BibleText): Exercise {
-  const answer = pickImportantWords(text, 1)[0];
+function buildSingleCheckoffExercise(texts: BibleText[]): Exercise {
+  const blanks = texts.map((text) => buildBlank(text, 0));
   return {
-    id: `${text.id}-choice-one`,
+    id: 'checkoff-place-one',
     level: 'N1',
-    title: 'Eén woord verdwijnt',
-    instruction: 'Kies het ontbrekende sleutelwoord.',
-    reference: text.reference,
-    theme: text.theme,
-    text: text.text,
-    promptText: maskWords(text.text, [answer]),
-    blanks: [
-      {
-        id: `${text.id}-blank-1`,
-        answer,
-        options: buildOptions(answer, text),
-      },
-    ],
+    title: 'Plek 1 afvinken',
+    instruction: 'Elke tekst mist nu één sleutelwoord. Kies het woord en vink de plekken één voor één af.',
+    reference: 'Plek 1',
+    text: blanks.map((blank) => blank.text).join(' '),
+    blanks,
   };
 }
 
-function buildMultiChoiceExercise(text: BibleText): Exercise {
-  const answers = pickImportantWords(text, 4);
+function buildMultiCheckoffExercise(texts: BibleText[]): Exercise {
+  const blanks = texts.flatMap((text) => [buildBlank(text, 1), buildBlank(text, 2)]);
   return {
-    id: `${text.id}-choice-many`,
+    id: 'checkoff-more-places',
     level: 'N2',
-    title: 'Meer woorden vallen weg',
-    instruction: 'Vul elk gat. Je ziet hoe de tekst verder uit beeld verdwijnt.',
-    reference: text.reference,
-    theme: text.theme,
-    text: text.text,
-    promptText: maskWords(text.text, answers),
-    blanks: answers.map((answer, index) => ({
-      id: `${text.id}-blank-${index + 1}`,
-      answer,
-      options: buildOptions(answer, text),
-    })),
+    title: 'Meer plekken afvinken',
+    instruction: 'Nu vallen er meer woorden weg, verdeeld over meerdere teksten. Werk de plekken rustig af.',
+    reference: 'Plek 2 en 3',
+    text: blanks.map((blank) => blank.text).join(' '),
+    blanks,
   };
 }
 
-function buildTypedBlankExercise(text: BibleText): Exercise {
-  const hiddenWords = pickImportantWords(text, 3);
+function buildFirstLettersSetExercise(theme: LessonTheme, texts: BibleText[]): Exercise {
   return {
-    id: `${text.id}-typed-blanks`,
-    level: 'N3',
-    title: 'Typ wat ontbreekt',
-    instruction: 'Nu kies je niet meer. Typ de ontbrekende woorden zelf.',
-    reference: text.reference,
-    theme: text.theme,
-    text: text.text,
-    promptText: maskWords(text.text, hiddenWords),
-    hiddenWords,
-  };
-}
-
-function buildInitialsExercise(text: BibleText): Exercise {
-  return {
-    id: `${text.id}-initials`,
+    id: `${theme.id}-initials`,
     level: 'N4',
-    title: 'Alleen eerste letters',
-    instruction: 'De tekst is bijna weg. Gebruik alleen de eerste letters als steun.',
-    reference: text.reference,
-    theme: text.theme,
-    text: text.text,
-    firstLetters: firstLettersForText(text.text),
-  };
-}
-
-function buildFreeRecallExercise(text: BibleText): Exercise {
-  return {
-    id: `${text.id}-free-recall`,
-    level: 'N5',
-    title: 'Vrije recall',
-    instruction: 'Alle hulp is weg. Typ de tekst rustig uit je hoofd.',
-    reference: text.reference,
-    theme: text.theme,
-    text: text.text,
+    title: 'Eerste letters per tekst',
+    instruction: 'Geen overtypen: gebruik de eerste letters om de tekst hardop of in gedachten op te halen.',
+    reference: theme.title,
+    text: texts.map((text) => text.text).join(' '),
+    firstLetters: texts.map((text) => `${text.reference}: ${firstLettersForText(text.text)}`).join('\n'),
+    chainTexts: texts,
   };
 }
 
@@ -165,19 +156,33 @@ function buildChainPreviewExercise(texts: BibleText[]): Exercise {
     id: 'chain-preview',
     level: 'N6',
     title: 'Ketting voorbereiden',
-    instruction: 'Later oefen je meerdere teksten achter elkaar. Vandaag zie je alvast de volgorde.',
+    instruction: 'Bekijk de volgorde. Later oefenen we deze teksten achter elkaar als korte ketting.',
     reference: texts.map((text) => text.reference).join(' + '),
     text: texts.map((text) => text.text).join(' '),
     chainTexts: texts,
   };
 }
 
-function pickImportantWords(text: BibleText, count: number): string[] {
+function buildBlank(text: BibleText, wordIndex: number): ChoiceBlank {
+  const answer = pickImportantWord(text, wordIndex);
+  return {
+    id: `${text.id}-blank-${wordIndex + 1}`,
+    answer,
+    options: buildOptions(answer, text),
+    reference: text.reference,
+    text: text.text,
+    promptText: maskWords(text.text, [answer]),
+    theme: text.theme,
+  };
+}
+
+function pickImportantWord(text: BibleText, index: number): string {
   const fallbackWords = text.text
     .split(/\s+/)
     .map((word) => word.replace(/[^A-Za-z0-9À-ž]/g, ''))
     .filter((word) => word.length > 3);
-  return [...text.importantWords, ...fallbackWords].slice(0, count);
+  const words = [...text.importantWords, ...fallbackWords];
+  return words[index % words.length];
 }
 
 function maskWords(text: string, hiddenWords: string[]): string {
